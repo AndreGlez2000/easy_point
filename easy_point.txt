@@ -1,0 +1,10 @@
+Webcam? cv2, pyzbar
+Punto de Venta:
+    Modulos:
+        1.- Login
+            1.1.- Cajero,Admin
+            1.2.- Al hacer clic a cualquier pide PIN
+            1.3.- Si es cajero se conecta a "Venta"
+            1.4.- Si es admin se conecta a "Historial de Venta"
+        2.- Venta
+            2.1.- 
