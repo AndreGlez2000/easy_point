@@ -4,6 +4,7 @@ from PySide6.QtGui import QFont, Qt
 from PySide6.QtCore import QSize, QTimer 
 from nuevo_usuario import NuevoUsuarioDialog
 from venta import VentanaPuntoDeVenta
+from historial_ventas import HistorialVentas
 import db_manager # <<<--- IMPORT DB MANAGER
 
 
@@ -208,23 +209,17 @@ class MainMenu(QWidget):
                 self.current_user_id = user_id
                 self.current_user_name = user_name 
                 
-                # Here, you might want to check if the user_record['tipo_usuario'] matches user_type_access_request
-                # For now, we assume if PIN is valid, access is granted to the mode they clicked.
-                # A more robust check would involve getting tipo_usuario from validate_user_pin and comparing.
-                # For example, if db_manager.validate_user_pin returned (is_valid, user_id, user_name, user_type_from_db, message)
-                # you could do: if user_type_from_db.lower() != user_type_access_request.lower(): ... show error ...
-
                 if user_type_access_request == "Cajero":
                     print(f"Acceso Cajero: {self.current_user_name} (ID: {self.current_user_id}). Abriendo módulo de venta.")
                     if self.ventana_venta_instancia is None:
                         self.ventana_venta_instancia = VentanaPuntoDeVenta(
                             parent_menu=self, 
                             id_usuario_cajero=self.current_user_id,
-                            nombre_cajero=self.current_user_name # Pass user name
+                            nombre_cajero=self.current_user_name
                         )
                     else:
                         self.ventana_venta_instancia.id_usuario_cajero = self.current_user_id
-                        self.ventana_venta_instancia.nombre_cajero = self.current_user_name # Update if instance exists
+                        self.ventana_venta_instancia.nombre_cajero = self.current_user_name
                         self.ventana_venta_instancia.actualizar_display_cajero() 
                     
                     self.ventana_venta_instancia.showMaximized()
@@ -232,15 +227,11 @@ class MainMenu(QWidget):
                     self.hide()
                 
                 elif user_type_access_request == "Administrador":
-                    # Similar logic for admin panel if it existed
-                    msg_box_info = QMessageBox(self)
-                    msg_box_info.setWindowTitle("Acceso Administrador")
-                    msg_box_info.setText(f"Acceso concedido a {self.current_user_name} (ID: {self.current_user_id}). Funcionalidad de admin pendiente.")
-                    msg_box_info.setIcon(QMessageBox.Icon.Information)
-                    msg_box_info.setStyleSheet("""QMessageBox { background-color: white; color: black; min-width: 300px;} 
-                                             QPushButton { background-color: #007bff; color: white; padding: 5px 15px; min-width: 80px;} """)
-                    msg_box_info.exec()
-                    print(f"Acceso Administrador: {self.current_user_name} (ID: {self.current_user_id}). Panel de Admin pendiente.")
+                    # Abrir panel de administrador
+                    self.ventana_admin = HistorialVentas()
+                    self.ventana_admin.resize(1200, 800)
+                    self.ventana_admin.show()
+                    self.hide()
             
             else: # Login failed
                 msg_box_warn = QMessageBox(self)

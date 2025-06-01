@@ -1,7 +1,7 @@
-\
 # filepath: c:\\Users\\Andre\\Documents\\easy_point\\db_manager.py
 import sqlite3
 import hashlib # For PIN hashing (recommended)
+from datetime import datetime
 
 DATABASE_NAME = "easypoint.db"
 
@@ -149,11 +149,12 @@ def record_sale(id_usuario_cajero, total_venta, metodo_pago, detalles_venta):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # 1. Insert into Ventas table
+        # 1. Insert into Ventas table with local time
+        fecha_local = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute("""
-            INSERT INTO Ventas (id_usuario_cajero, total_venta, metodo_pago)
-            VALUES (?, ?, ?)
-        """, (id_usuario_cajero, total_venta, metodo_pago))
+            INSERT INTO Ventas (id_usuario_cajero, fecha_venta, total_venta, metodo_pago)
+            VALUES (?, ?, ?, ?)
+        """, (id_usuario_cajero, fecha_local, total_venta, metodo_pago))
         id_venta_nueva = cursor.lastrowid # Get the ID of the newly inserted sale
 
         if not id_venta_nueva:
