@@ -98,6 +98,7 @@ class HistorialVentas(QWidget):
         super().__init__(parent)
         self.setWindowTitle("Historial de Ventas")
         self.main_menu_ref = main_menu_ref
+        print(f"HistorialVentas __init__: Received main_menu_ref: {main_menu_ref}, self.main_menu_ref set to: {self.main_menu_ref}") # DEBUG
         self.setup_ui()
         
     def setup_ui(self):
@@ -541,8 +542,22 @@ class HistorialVentas(QWidget):
         self.filtrar_ventas(show_all_dates=True) # Reload data showing all dates
 
     def go_to_main_menu(self):
+        print(f"HistorialVentas go_to_main_menu: Current self.main_menu_ref: {self.main_menu_ref}") # DEBUG
         if self.main_menu_ref:
             self.main_menu_ref.show()
+            # Ensure the main menu is maximized and activated
+            try:
+                # Qt.WindowState.WindowMaximized is preferred for PySide6
+                maximized_state = Qt.WindowState.WindowMaximized if hasattr(Qt.WindowState, 'WindowMaximized') else Qt.WindowMaximized
+                self.main_menu_ref.setWindowState(maximized_state)
+            except AttributeError:
+                print("Warning: main_menu_ref does not have setWindowState method or Qt.WindowState is not fully available.")
+            
+            try:
+                self.main_menu_ref.activateWindow()
+            except AttributeError:
+                print("Warning: main_menu_ref does not have activateWindow method.")
+
             self.close()
         else:
             msg_box = QMessageBox(self)

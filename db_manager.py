@@ -67,7 +67,7 @@ def add_user(nombre_usuario, pin, tipo_usuario):
 def validate_user_pin(nombre_usuario, pin_ingresado):
     """
     Validates a user's PIN against their username (case-insensitive).
-    Returns (is_valid, user_id, user_name, message).
+    Returns (is_valid, message, user_id, user_name).
     """
     # hashed_pin_ingresado = _hash_pin(pin_ingresado) # Use once hashing is implemented
     hashed_pin_ingresado = pin_ingresado
@@ -88,14 +88,14 @@ def validate_user_pin(nombre_usuario, pin_ingresado):
                 user_id = user_record['id_usuario']
                 user_name = user_record['nombre_usuario'] # Or a specific 'display_name' field if you add one
                 # Optionally, you might want to return tipo_usuario as well if needed by the caller
-                return True, user_id, user_name, "PIN válido."
+                return True, "PIN válido.", user_id, user_name # Corrected order
             else:
-                return False, None, None, "PIN incorrecto."
+                return False, "PIN incorrecto.", None, None # Corrected order
         else:
-            return False, None, None, "Nombre de usuario no encontrado."
+            return False, "Nombre de usuario no encontrado.", None, None # Corrected order
             
     except sqlite3.Error as e:
-        return False, None, None, f"Error de base de datos: {e}"
+        return False, f"Error de base de datos: {e}", None, None # Corrected order
     finally:
         conn.close()
 

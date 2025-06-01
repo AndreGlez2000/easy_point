@@ -9,9 +9,9 @@ import db_manager # <<<--- IMPORT DB MANAGER
 
 
 class PinDialog(QDialog):
-    def __init__(self, user_type, parent=None): # user_type is now more of a title hint
+    def __init__(self, parent=None, user_type_title="Acceso"): # Changed parameters
         super().__init__(parent)
-        self.setWindowTitle(f"Acceso {user_type}") # Changed title
+        self.setWindowTitle(user_type_title) # Use the passed title
         self.setModal(True)
         self.setFixedSize(480, 360) # Aumentado el alto
         self.setStyleSheet("""
@@ -58,7 +58,7 @@ class PinDialog(QDialog):
         self.username_input.setPlaceholderText("Ingrese su usuario")
         
         # PIN field
-        self.pin_label = QLabel(f"PIN de {user_type}:") # Still use user_type for PIN label context
+        self.pin_label = QLabel(f"PIN:") # Simplified PIN label
         self.pin_input = QLineEdit()
         self.pin_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.pin_input.setMaxLength(8) 
@@ -189,22 +189,13 @@ class MainMenu(QWidget):
         self.setLayout(main_layout)
 
     def show_pin_dialog(self, user_type_access_request): # user_type_access_request is "Cajero" or "Administrador"
-        dialog = PinDialog(user_type_access_request, self) # Pass the access type for dialog title/label
+        dialog_title = f"Acceso {user_type_access_request}"
+        dialog = PinDialog(self, dialog_title) # Pass parent and the constructed title
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            nombre_usuario_ingresado, pin_ingresado = dialog.get_credentials()
-
-            if not nombre_usuario_ingresado or not pin_ingresado:
-                msg_box = QMessageBox(self)
-                msg_box.setWindowTitle("Datos Incompletos")
-                msg_box.setText("Debe ingresar nombre de usuario y PIN.")
-                msg_box.setIcon(QMessageBox.Icon.Warning)
-                msg_box.setStyleSheet("""QMessageBox { background-color: white; color: black; min-width: 300px;} 
-                                     QPushButton { background-color: #007bff; color: white; padding: 5px 15px; min-width: 80px;} """)
-                msg_box.exec()
-                return
-
-            is_valid, user_id, user_name, message = db_manager.validate_user_pin(nombre_usuario_ingresado, pin_ingresado)
+            nombre_usuario_ingresado, pin_ingresado = dialog.get_credentials() # Use get_credentials
             
+            is_valid, message, user_id, user_name = db_manager.validate_user_pin(nombre_usuario_ingresado, pin_ingresado) # Removed user_type_access_request
+
             if is_valid:
                 self.current_user_id = user_id
                 self.current_user_name = user_name 
@@ -225,10 +216,10 @@ class MainMenu(QWidget):
                     self.ventana_venta_instancia.showMaximized()
                     self.ventana_venta_instancia.activateWindow()
                     self.hide()
-                
                 elif user_type_access_request == "Administrador":
                     # Abrir panel de administrador
                     self.ventana_admin = HistorialVentas(main_menu_ref=self) # Pass self (MainMenu instance)
+                    print(f"MainMenu: HistorialVentas instantiated, main_menu_ref is {getattr(self.ventana_admin, 'main_menu_ref', 'Attribute not found')}") # DEBUG
                     self.ventana_admin.resize(1200, 800)
                     self.ventana_admin.show()
                     self.hide()
@@ -236,7 +227,9 @@ class MainMenu(QWidget):
             else: # Login failed
                 msg_box_warn = QMessageBox(self)
                 msg_box_warn.setWindowTitle("Acceso Denegado")
-                msg_box_warn.setText(message) # Display message from db_manager
+                # Ensure message is a string, in case db_manager returns something else
+                msg_text = str(message) if message is not None else "Error desconocido."
+                msg_box_warn.setText(msg_text)
                 msg_box_warn.setIcon(QMessageBox.Icon.Warning)
                 msg_box_warn.setStyleSheet("""QMessageBox { background-color: white; color: black; min-width: 300px;} 
                                          QPushButton { background-color: #007bff; color: white; padding: 5px 15px; min-width: 80px;} """)
