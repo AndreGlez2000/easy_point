@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                               QDateEdit, QComboBox, QTableWidget, QTableWidgetItem,
                               QPushButton, QLabel, QHeaderView, QDialog, QFrame,
-                              QSpacerItem, QSizePolicy, QButtonGroup)
+                              QSpacerItem, QSizePolicy, QButtonGroup, QMessageBox, QApplication)
 from PySide6.QtCore import Qt, QDate, QSize
 from PySide6.QtGui import QIcon, QFont, QPalette, QColor
 import sqlite3
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, date # Ensure date is specifically imported from datetime
 
 class SidebarButton(QPushButton):
     def __init__(self, text, icon_path=None, parent=None):
@@ -94,9 +94,10 @@ class DetallesVentaDialog(QDialog):
             conn.close()
 
 class HistorialVentas(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, main_menu_ref=None):
         super().__init__(parent)
-        self.setWindowTitle("Sistema de Inventario")
+        self.setWindowTitle("Historial de Ventas")
+        self.main_menu_ref = main_menu_ref
         self.setup_ui()
         
     def setup_ui(self):
@@ -241,6 +242,7 @@ class HistorialVentas(QWidget):
                 border-radius: 4px;
                 min-width: 250px;
                 font-size: 14px;
+                color: #495057; /* Added text color */
             }
             QLineEdit:focus {
                 border-color: #80bdff;
@@ -261,7 +263,56 @@ class HistorialVentas(QWidget):
                 border-radius: 4px;
                 min-width: 150px;
                 font-size: 14px;
+                color: #495057; /* Added text color */
             }
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left-width: 1px;
+                border-left-color: #ced4da;
+                border-left-style: solid;
+                border-top-right-radius: 3px;
+                border-bottom-right-radius: 3px;
+            }
+            QDateEdit::down-arrow {
+                image: url(icons/dropdown.svg); /* Ensure you have a dropdown icon */
+                width: 10px;
+                height: 10px;
+            }
+            QCalendarWidget QWidget { /* Calendar background */
+                alternate-background-color: #f8f9fa;
+                background-color: white;
+                color: #212529;
+            }
+            QCalendarWidget QAbstractItemView:enabled { /* Calendar day numbers */
+                color: #212529;
+                selection-background-color: #007bff;
+                selection-color: white;
+            }
+            QCalendarWidget QToolButton { /* Calendar month/year buttons */
+                color: #212529;
+                background-color: transparent;
+                border: none;
+                margin: 5px;
+                padding: 5px;
+            }
+            QCalendarWidget QToolButton:hover {
+                background-color: #e9ecef;
+            }
+            QCalendarWidget QSpinBox { /* Calendar year spinbox */
+                color: #212529;
+                background-color: white;
+                border: 1px solid #ced4da;
+                padding: 2px;
+            }
+            QCalendarWidget QSpinBox::up-button, QCalendarWidget QSpinBox::down-button {
+                 subcontrol-origin: border;
+                 width: 16px;
+                 border-width: 1px;
+            }
+            QCalendarWidget QAbstractItemView:disabled { color: #adb5bd; } /* Disabled dates */
+            QCalendarWidget QHeaderView { background-color: #e9ecef; } /* Day names header */
         """)
         
         # Ordenamiento
@@ -275,6 +326,15 @@ class HistorialVentas(QWidget):
                 border-radius: 4px;
                 min-width: 180px;
                 font-size: 14px;
+                color: #495057; /* Added text color */
+                background-color: white; /* Added background color */
+            }
+            QComboBox QAbstractItemView { /* Dropdown list items */
+                color: #212529;
+                background-color: white;
+                selection-background-color: #007bff;
+                selection-color: white;
+                border: 1px solid #ced4da;
             }
             QComboBox::drop-down {
                 border: none;
@@ -290,14 +350,33 @@ class HistorialVentas(QWidget):
         filter_layout.addWidget(self.date_filter)
         filter_layout.addWidget(self.sort_combo)
         filter_layout.addStretch()
+
+        # Botón para resetear filtros
+        self.reset_filters_button = QPushButton("Resetear Filtros")
+        self.reset_filters_button.clicked.connect(self.reset_filters_and_reload)
+        self.reset_filters_button.setStyleSheet("""
+            QPushButton {
+                padding: 8px 12px;
+                border: 1px solid #6c757d;
+                border-radius: 4px;
+                font-size: 14px;
+                color: #495057;
+                background-color: #f8f9fa;
+            }
+            QPushButton:hover {
+                background-color: #e2e6ea;
+                border-color: #545b62;
+            }
+        """)
+        filter_layout.addWidget(self.reset_filters_button)
         
         content_layout.addLayout(filter_layout)
         
         # Tabla de ventas
         self.tabla_ventas = QTableWidget()
-        self.tabla_ventas.setColumnCount(6)
+        self.tabla_ventas.setColumnCount(5)
         self.tabla_ventas.setHorizontalHeaderLabels([
-            "ID Venta", "Fecha", "Cajero", "Productos", "Total", "Acciones"
+            "ID Venta", "Fecha", "Cajero", "Productos", "Total"
         ])
         self.tabla_ventas.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabla_ventas.verticalHeader().setVisible(False)
@@ -311,6 +390,7 @@ class HistorialVentas(QWidget):
             QTableWidget::item {
                 padding: 12px 8px;
                 border-bottom: 1px solid #dee2e6;
+                color: #212529; /* Explicitly set text color for items */
             }
             QHeaderView::section {
                 background-color: #f8f9fa;
@@ -332,180 +412,146 @@ class HistorialVentas(QWidget):
         # Agregar sidebar y contenido al layout principal
         main_layout.addWidget(sidebar)
         main_layout.addWidget(content_widget)
+
+        # Botón de Regreso al Menú Principal
+        self.back_to_main_menu_button = QPushButton("← Volver al Menú Principal")
+        self.back_to_main_menu_button.clicked.connect(self.go_to_main_menu)
+        self.back_to_main_menu_button.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                font-weight: 500;
+                padding: 10px 15px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        content_layout.addWidget(self.back_to_main_menu_button, alignment=Qt.AlignmentFlag.AlignRight)
         
         # Cargar ventas iniciales
-        self.cargar_ventas()
+        self.cargar_ventas() # This should call filtrar_ventas with default/initial filter settings
         
     def cargar_ventas(self):
-        conn = sqlite3.connect("easypoint.db")
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        try:
-            cursor.execute("""
-                SELECT v.id_venta, v.fecha_venta, u.nombre_usuario as cajero,
-                       COUNT(dv.id_detalle_venta) as num_productos,
-                       v.total_venta
-                FROM Ventas v
-                JOIN Usuarios u ON v.id_usuario_cajero = u.id_usuario
-                JOIN DetallesVenta dv ON v.id_venta = dv.id_venta
-                GROUP BY v.id_venta
-                ORDER BY v.fecha_venta DESC
-            """)
+        # Load all sales from all dates, sorted by most recent, on initial load.
+        self.filtrar_ventas(show_all_dates=True)
             
+    def filtrar_ventas(self, show_all_dates=False): # Added show_all_dates parameter
+        busqueda = self.search_input.text().lower()
+        q_date_obj = self.date_filter.date()
+        
+        fecha_dt_obj = None
+        fecha_str = None
+        if not show_all_dates: # Only prepare date string if not showing all dates
+            if q_date_obj.isValid():
+                fecha_dt_obj = date(q_date_obj.year(), q_date_obj.month(), q_date_obj.day())
+            else:
+                fecha_dt_obj = date.today() 
+            fecha_str = fecha_dt_obj.strftime('%Y-%m-%d')
+        
+        orden = "DESC" if self.sort_combo.currentText() == "Más recientes primero" else "ASC"
+        
+        conn = None 
+        try:
+            conn = sqlite3.connect("easypoint.db")
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            query_parts = [
+                "SELECT v.id_venta, v.fecha_venta, u.nombre_usuario as cajero,",
+                "COUNT(dv.id_detalle_venta) as num_productos,",
+                "v.total_venta",
+                "FROM Ventas v",
+                "JOIN Usuarios u ON v.id_usuario_cajero = u.id_usuario",
+                "JOIN DetallesVenta dv ON v.id_venta = dv.id_venta"
+            ]
+            
+            conditions = []
+            params = []
+
+            if not show_all_dates and fecha_str:
+                conditions.append("DATE(v.fecha_venta) = ?")
+                params.append(fecha_str)
+
+            if busqueda: 
+                conditions.append("(LOWER(u.nombre_usuario) LIKE ? OR LOWER(CAST(v.id_venta AS TEXT)) LIKE ?)")
+                params.append(f"%{busqueda}%") 
+                params.append(f"%{busqueda}%")
+            
+            if conditions:
+                query_parts.append("WHERE " + " AND ".join(conditions))
+            
+            query_parts.append("GROUP BY v.id_venta")
+            query_parts.append(f"ORDER BY v.fecha_venta {orden}")
+            
+            final_query = " ".join(query_parts)
+            
+            cursor.execute(final_query, tuple(params))
             ventas = cursor.fetchall()
+            
+            self.tabla_ventas.setRowCount(0) 
             self.tabla_ventas.setRowCount(len(ventas))
             
-            for row, venta in enumerate(ventas):
-                # ID Venta (con formato V001, V002, etc.)
-                id_venta_formatted = f"V{str(venta['id_venta']).zfill(4)}"
+            # Ensure the loop for populating self.tabla_ventas does not attempt to add a 6th column (actions)
+            for row, venta_data in enumerate(ventas):
+                # ID Venta
+                id_venta_formatted = f"V{str(venta_data['id_venta']).zfill(4)}"
                 item_id = QTableWidgetItem(id_venta_formatted)
                 item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_ventas.setItem(row, 0, item_id)
                 
-                # Fecha - asumimos que la fecha está en hora local
-                fecha = datetime.strptime(venta['fecha_venta'], '%Y-%m-%d %H:%M:%S')
-                fecha_formatted = fecha.strftime('%d/%m/%Y %H:%M')
+                # Fecha
+                fecha_db_dt = datetime.strptime(venta_data['fecha_venta'], '%Y-%m-%d %H:%M:%S')
+                fecha_formatted = fecha_db_dt.strftime('%d/%m/%Y %H:%M')
                 item_fecha = QTableWidgetItem(fecha_formatted)
                 item_fecha.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_ventas.setItem(row, 1, item_fecha)
                 
                 # Cajero
-                item_cajero = QTableWidgetItem(venta['cajero'])
+                item_cajero = QTableWidgetItem(venta_data['cajero'])
                 item_cajero.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_ventas.setItem(row, 2, item_cajero)
                 
                 # Número de productos
-                item_productos = QTableWidgetItem(str(venta['num_productos']))
+                item_productos = QTableWidgetItem(str(venta_data['num_productos']))
                 item_productos.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_ventas.setItem(row, 3, item_productos)
                 
                 # Total
-                total_formatted = f"${venta['total_venta']:.2f}"
+                total_formatted = f"${venta_data['total_venta']:.2f}"
                 item_total = QTableWidgetItem(total_formatted)
                 item_total.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_ventas.setItem(row, 4, item_total)
-                
-                # Botón Ver Detalles
-                btn_detalles = QPushButton("Ver Detalles")
-                btn_detalles.setStyleSheet("""
-                    QPushButton {
-                        background-color: #28a745;
-                        color: white;
-                        border: none;
-                        padding: 5px 10px;
-                        border-radius: 4px;
-                        font-size: 13px;
-                        font-weight: 500;
-                    }
-                    QPushButton:hover {
-                        background-color: #218838;
-                    }
-                """)
-                btn_detalles.clicked.connect(lambda checked, v=venta['id_venta']: self.mostrar_detalles(v))
-                self.tabla_ventas.setCellWidget(row, 5, btn_detalles)
-                
         finally:
-            conn.close()
-            
-    def filtrar_ventas(self):
-        # Obtener valores de filtros
-        busqueda = self.search_input.text().lower()
-        fecha = self.date_filter.date().toPython()
-        orden = "DESC" if self.sort_combo.currentText() == "Más recientes primero" else "ASC"
-        
-        conn = sqlite3.connect("easypoint.db")
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        try:
-            # Construir la consulta base
-            query = """
-                SELECT v.id_venta, v.fecha_venta, u.nombre_usuario as cajero,
-                       COUNT(dv.id_detalle_venta) as num_productos,
-                       v.total_venta
-                FROM Ventas v
-                JOIN Usuarios u ON v.id_usuario_cajero = u.id_usuario
-                JOIN DetallesVenta dv ON v.id_venta = dv.id_venta
-                WHERE DATE(v.fecha_venta) = DATE(?)
-                AND (LOWER(u.nombre_usuario) LIKE ? OR v.id_venta LIKE ?)
-                GROUP BY v.id_venta
-                ORDER BY v.fecha_venta """ + orden
-                
-            cursor.execute(query, (fecha, f"%{busqueda}%", f"%{busqueda}%"))
-            
-            ventas = cursor.fetchall()
-            self.tabla_ventas.setRowCount(len(ventas))
-            
-            for row, venta in enumerate(ventas):
-                # Llenar la tabla igual que en cargar_ventas()
-                id_venta_formatted = f"V{str(venta['id_venta']).zfill(4)}"
-                item_id = QTableWidgetItem(id_venta_formatted)
-                item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tabla_ventas.setItem(row, 0, item_id)
-                
-                fecha = datetime.strptime(venta['fecha_venta'], '%Y-%m-%d %H:%M:%S')
-                fecha_formatted = fecha.strftime('%d/%m/%Y %H:%M')
-                item_fecha = QTableWidgetItem(fecha_formatted)
-                item_fecha.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tabla_ventas.setItem(row, 1, item_fecha)
-                
-                item_cajero = QTableWidgetItem(venta['cajero'])
-                item_cajero.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tabla_ventas.setItem(row, 2, item_cajero)
-                
-                item_productos = QTableWidgetItem(str(venta['num_productos']))
-                item_productos.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tabla_ventas.setItem(row, 3, item_productos)
-                
-                total_formatted = f"${venta['total_venta']:.2f}"
-                item_total = QTableWidgetItem(total_formatted)
-                item_total.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tabla_ventas.setItem(row, 4, item_total)
-                
-                btn_detalles = QPushButton("Ver Detalles")
-                btn_detalles.setStyleSheet("""
-                    QPushButton {
-                        background-color: #28a745;
-                        color: white;
-                        border: none;
-                        padding: 5px 10px;
-                        border-radius: 4px;
-                        font-size: 13px;
-                        font-weight: 500;
-                    }
-                    QPushButton:hover {
-                        background-color: #218838;
-                    }
-                """)
-                btn_detalles.clicked.connect(lambda checked, v=venta['id_venta']: self.mostrar_detalles(v))
-                self.tabla_ventas.setCellWidget(row, 5, btn_detalles)
-                
-        finally:
-            conn.close()
-            
+            if conn:
+                conn.close()
+
     def mostrar_detalles(self, id_venta):
         dialog = DetallesVentaDialog(id_venta, self)
         dialog.exec()
 
-    def cerrar_sesion(self):
-        from main_menu import MainMenu
-        self.menu_principal = MainMenu()
-        self.menu_principal.show()
-        self.close()
+    def reset_filters_and_reload(self):
+        self.search_input.clear()
+        self.date_filter.setDate(QDate.currentDate()) # Visually reset, but will be ignored by query
+        self.sort_combo.setCurrentIndex(0) # "Más recientes primero"
+        self.filtrar_ventas(show_all_dates=True) # Reload data showing all dates
 
-if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication
-    import sys
-    
-    app = QApplication(sys.argv)
-    
-    # Establecer la fuente predeterminada
-    font = QFont("Segoe UI", 10)
-    app.setFont(font)
-    
-    ventana = HistorialVentas()
-    ventana.resize(1200, 800)
-    ventana.show()
-    
-    sys.exit(app.exec()) 
+    def go_to_main_menu(self):
+        if self.main_menu_ref:
+            self.main_menu_ref.show()
+            self.close()
+        else:
+            msg_box = QMessageBox(self)
+            msg_box.setIcon(QMessageBox.Icon.Warning)
+            msg_box.setWindowTitle("Error de Navegación")
+            msg_box.setText("No se pudo volver al menú principal. Referencia no encontrada.")
+            msg_box.exec()
+
+    def cerrar_sesion(self):
+        current_window = self.window()
+        if current_window:
+            current_window.close()

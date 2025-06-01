@@ -228,7 +228,7 @@ class MainMenu(QWidget):
                 
                 elif user_type_access_request == "Administrador":
                     # Abrir panel de administrador
-                    self.ventana_admin = HistorialVentas()
+                    self.ventana_admin = HistorialVentas(main_menu_ref=self) # Pass self (MainMenu instance)
                     self.ventana_admin.resize(1200, 800)
                     self.ventana_admin.show()
                     self.hide()
