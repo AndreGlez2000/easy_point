@@ -8,10 +8,10 @@
 - ✅ **Sistema de Usuarios**: Manejo de cajeros y administradores
 - ✅ **Gestión de Ventas**: Proceso completo de ventas con múltiples métodos de pago
 - ✅ **Historial Detallado**: Consulta y análisis de ventas realizadas
-- ✅ **Gestión de Inventario**: Control de productos y stock
+- ✅ **Control de Inventario**: Gestión de productos y stock en tiempo real
 - ✅ **Base de Datos SQLite**: Sistema de almacenamiento robusto y confiable
 - ✅ **Autocompletado Inteligente**: Búsqueda rápida de productos
-- ✅ **Reportes de Ventas**: Filtrado por fecha, cajero y otros criterios
+- ✅ **Filtros de Ventas**: Filtrado por fecha, cajero y ordenamiento
 
 ---
 
@@ -89,41 +89,42 @@ python run_app.py
 
 2. **Pantalla de Inicio**
    - La aplicación iniciará mostrando el menú principal
-   - Desde aquí puedes acceder a las diferentes funcionalidades
+   - Selecciona "Modo Cajero" o "Modo Admin" según tu rol
 
 ### 👥 Sistema de Usuarios
 
 EasyPoint maneja dos tipos de usuarios:
 
-#### 🔐 Usuarios Predeterminados
+#### 🔐 Usuarios Disponibles
 
 | Usuario | PIN | Tipo | Acceso |
 |---------|-----|------|--------|
-| admin | 1234 | Administrador | Historial de ventas, gestión completa |
+| admin | 1234 | Administrador | Historial de ventas |
 | cajero1 | 0000 | Cajero | Módulo de ventas |
+| Andre | 1506 | Cajero | Módulo de ventas |
 | cajero2 | 1111 | Cajero | Módulo de ventas |
 | cajero3 | 2222 | Cajero | Módulo de ventas |
+| Arturo | 1234 | Cajero | Módulo de ventas |
 
 #### Tipos de Usuario
 
 **🛡️ Administrador:**
-- Acceso completo al sistema
 - Visualización del historial de ventas
-- Gestión de usuarios
-- Reportes y análisis
-- Configuración del sistema
+- Filtrado y búsqueda de transacciones
+- Detalles completos de cada venta
 
 **👤 Cajero:**
 - Acceso al módulo de ventas
 - Procesamiento de transacciones
-- Consulta de productos
-- Generación de tickets de venta
+- Búsqueda y selección de productos
+- Cálculo automático de totales y cambio
 
 ### 💰 Módulo de Ventas
 
 #### Acceso al Módulo
-1. Inicia sesión como cajero o selecciona "Venta" desde el menú principal
-2. Aparecerá la interfaz principal de ventas
+1. Selecciona "Modo Cajero" desde el menú principal
+2. Ingresa tu usuario y PIN
+3. Aparecerá la interfaz principal de ventas
 
 #### Interfaz de Ventas
 
@@ -135,8 +136,8 @@ EasyPoint maneja dos tipos de usuarios:
 
 **Panel Derecho - Información y Control:**
 - 🔍 **Búsqueda de productos**: Campo con autocompletado inteligente
-- 💵 **Resumen de venta**: Subtotal, impuestos, total
-- 💳 **Método de pago**: Efectivo, tarjeta de crédito, tarjeta de débito
+- 💵 **Resumen de venta**: Subtotal y total
+- 💳 **Método de pago**: Efectivo, Tarjeta de Crédito, Tarjeta de Débito, Transferencia
 - 💰 **Cálculo de cambio**: Automático al ingresar efectivo recibido
 - ✅ **Finalizar venta**: Procesar la transacción
 
@@ -153,7 +154,7 @@ EasyPoint maneja dos tipos de usuarios:
    - El stock se verifica en tiempo real
 
 3. **Seleccionar Método de Pago**
-   - Elige entre: Efectivo, Tarjeta de Crédito, Tarjeta de Débito
+   - Elige entre: Efectivo, Tarjeta de Crédito, Tarjeta de Débito, Transferencia
    - Para efectivo: ingresa la cantidad recibida
    - El sistema calcula automáticamente el cambio
 
@@ -175,27 +176,23 @@ EasyPoint maneja dos tipos de usuarios:
 - Cálculo de cambio para efectivo
 - Validación de stock disponible
 
-**⚠️ Validaciones:**
+**⚠️ Validaciones Implementadas:**
 - Verificación de stock suficiente
 - Validación de cantidades positivas
-- Control de productos duplicados
-- Verificación de métodos de pago
+- Control de productos duplicados (actualiza cantidad en lugar de duplicar)
 
 ### 📋 Módulo de Historial de Ventas (Solo Administradores)
 
 #### Acceso al Historial
-1. Inicia sesión como administrador
-2. El sistema te dirigirá automáticamente al historial de ventas
+1. Selecciona "Modo Admin" desde el menú principal
+2. Ingresa credenciales de administrador
+3. El sistema te dirigirá al historial de ventas
 
 #### Interfaz del Historial
 
 **🎛️ Barra Lateral de Navegación:**
-- 📊 Dashboard
-- 📦 Inventario
-- 📈 Historial de Ventas (actual)
-- 📊 Análisis de Ventas
-- 💾 Copias de Seguridad
-- ⚙️ Configuración
+- 📈 Historial de Ventas (único módulo funcional)
+- Otros botones (Dashboard, Inventario, etc.) son elementos visuales sin funcionalidad
 
 **🔍 Filtros y Búsqueda:**
 - **Búsqueda por texto**: Buscar por ID de venta o nombre de cajero
@@ -214,7 +211,7 @@ EasyPoint maneja dos tipos de usuarios:
 
 #### Funcionalidades del Historial
 
-**🔍 Filtrado Avanzado:**
+**🔍 Filtrado Funcional:**
 - Búsqueda en tiempo real mientras escribes
 - Filtrado por fecha específica
 - Ordenamiento ascendente/descendente por fecha
@@ -240,6 +237,17 @@ EasyPoint maneja dos tipos de usuarios:
 | 750100000004 | Agua Embotellada 1L | $10.00 | 200 unidades |
 | 750100000005 | Jabón de Tocador Neutro | $20.00 | 50 unidades |
 
+### ➕ Gestión Básica de Usuarios
+
+**Funcionalidad Disponible:**
+- **Agregar Usuarios**: Desde el menú principal, botón "Agregar Usuario"
+- **Campos requeridos**: Nombre de usuario, PIN, Tipo (Cajero/Administrador)
+
+**Limitaciones Actuales:**
+- No se pueden editar usuarios existentes
+- No se pueden eliminar usuarios
+- No hay módulo completo de gestión de usuarios
+
 ---
 
 ## 🗃️ Estructura de la Base de Datos
@@ -255,7 +263,6 @@ EasyPoint maneja dos tipos de usuarios:
 - Catálogo completo de productos
 - Códigos de barras únicos
 - Control de precios y stock
-- Historial de actualizaciones
 
 **💰 Ventas**
 - Registro de todas las transacciones
@@ -332,10 +339,10 @@ VALUES ('nuevo_codigo', 'Nombre del Producto', 25.00, 100);
 easy_point/
 ├── 📄 run_app.py              # Punto de entrada principal
 ├── 📄 main_menu.py            # Menú principal del sistema
-├── 📄 login.py                # Sistema de autenticación
+├── 📄 login.py                # Sistema de autenticación (no usado en flujo actual)
 ├── 📄 venta.py                # Módulo de ventas para cajeros
 ├── 📄 historial_ventas.py     # Historial para administradores
-├── 📄 nuevo_usuario.py        # Gestión de usuarios
+├── 📄 nuevo_usuario.py        # Diálogo para agregar usuarios
 ├── 📄 db_manager.py           # Gestión de base de datos
 ├── 📄 schema.sql              # Esquema y datos iniciales
 ├── 📄 easypoint.db            # Base de datos SQLite
@@ -350,6 +357,23 @@ easy_point/
 │   └── 🎨 settings.svg
 └── 📁 venv/                   # Entorno virtual (si está configurado)
 ```
+
+---
+
+## ⚠️ Limitaciones Conocidas
+
+### Funcionalidades No Implementadas Actualmente:
+- ❌ **Generación de tickets/recibos de venta**
+- ❌ **Cálculo de impuestos/IVA**
+- ❌ **Módulos de Dashboard, Inventario, Análisis, Copias de seguridad, Configuración**
+- ❌ **Gestión completa de usuarios** (solo agregar)
+- ❌ **Reportes avanzados y análisis de ventas**
+- ❌ **Validación específica de métodos de pago**
+- ❌ **Historial de cambios de inventario**
+
+### Elementos Visuales Sin Funcionalidad:
+- Botones de la barra lateral (excepto Historial de Ventas)
+- Iconos decorativos sin enlaces a módulos
 
 ---
 
@@ -385,4 +409,4 @@ Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para má
 
 ---
 
-*EasyPoint - Simplificando la gestión de ventas para tu negocio* 🚀 
+*EasyPoint - Sistema de punto de venta funcional y confiable* 🚀 
