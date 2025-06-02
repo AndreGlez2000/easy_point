@@ -438,12 +438,16 @@ class HistorialVentas(QWidget):
         self.cargar_ventas() # This should call filtrar_ventas with default/initial filter settings
         
     def cargar_ventas(self):
-        # Load all sales from all dates, sorted by most recent, on initial load.
-        self.filtrar_ventas(show_all_dates=True)
+        # Load sales based on current filter settings on initial load
+        self.filtrar_ventas()
             
-    def filtrar_ventas(self, show_all_dates=False): # Added show_all_dates parameter
+    def filtrar_ventas(self, show_all_dates=None): # Changed parameter to optional
         busqueda = self.search_input.text().lower()
         q_date_obj = self.date_filter.date()
+        
+        # If show_all_dates is not explicitly set, use current date to show today's sales by default
+        if show_all_dates is None:
+            show_all_dates = False  # Default behavior: filter by selected date
         
         fecha_dt_obj = None
         fecha_str = None
