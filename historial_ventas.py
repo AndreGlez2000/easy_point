@@ -235,7 +235,7 @@ class HistorialVentas(QWidget):
         # Búsqueda
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Buscar por cajero o ID...")
-        self.search_input.textChanged.connect(self.filtrar_ventas)
+        self.search_input.textChanged.connect(self.on_search_changed)
         self.search_input.setStyleSheet("""
             QLineEdit {
                 padding: 8px 12px;
@@ -256,7 +256,7 @@ class HistorialVentas(QWidget):
         self.date_filter = QDateEdit()
         self.date_filter.setCalendarPopup(True)
         self.date_filter.setDate(QDate.currentDate())
-        self.date_filter.dateChanged.connect(self.filtrar_ventas)
+        self.date_filter.dateChanged.connect(self.on_date_changed)
         self.date_filter.setStyleSheet("""
             QDateEdit {
                 padding: 8px 12px;
@@ -319,7 +319,7 @@ class HistorialVentas(QWidget):
         # Ordenamiento
         self.sort_combo = QComboBox()
         self.sort_combo.addItems(["Más recientes primero", "Más antiguos primero"])
-        self.sort_combo.currentTextChanged.connect(self.filtrar_ventas)
+        self.sort_combo.currentTextChanged.connect(self.on_sort_changed)
         self.sort_combo.setStyleSheet("""
             QComboBox {
                 padding: 8px 12px;
@@ -457,6 +457,9 @@ class HistorialVentas(QWidget):
             else:
                 fecha_dt_obj = date.today() 
             fecha_str = fecha_dt_obj.strftime('%Y-%m-%d')
+            print(f"DEBUG: Filtrando por fecha: {fecha_str}")  # DEBUG
+        else:
+            print("DEBUG: Mostrando todas las fechas")  # DEBUG
         
         orden = "DESC" if self.sort_combo.currentText() == "Más recientes primero" else "ASC"
         
@@ -481,11 +484,13 @@ class HistorialVentas(QWidget):
             if not show_all_dates and fecha_str:
                 conditions.append("DATE(v.fecha_venta) = ?")
                 params.append(fecha_str)
+                print(f"DEBUG: Condición de fecha agregada: DATE(v.fecha_venta) = {fecha_str}")  # DEBUG
 
             if busqueda: 
                 conditions.append("(LOWER(u.nombre_usuario) LIKE ? OR LOWER(CAST(v.id_venta AS TEXT)) LIKE ?)")
                 params.append(f"%{busqueda}%") 
                 params.append(f"%{busqueda}%")
+                print(f"DEBUG: Condición de búsqueda agregada para: {busqueda}")  # DEBUG
             
             if conditions:
                 query_parts.append("WHERE " + " AND ".join(conditions))
@@ -494,9 +499,13 @@ class HistorialVentas(QWidget):
             query_parts.append(f"ORDER BY v.fecha_venta {orden}")
             
             final_query = " ".join(query_parts)
+            print(f"DEBUG: Query final: {final_query}")  # DEBUG
+            print(f"DEBUG: Parámetros: {params}")  # DEBUG
             
             cursor.execute(final_query, tuple(params))
             ventas = cursor.fetchall()
+            
+            print(f"DEBUG: Se encontraron {len(ventas)} ventas")  # DEBUG
             
             self.tabla_ventas.setRowCount(0) 
             self.tabla_ventas.setRowCount(len(ventas))
@@ -531,6 +540,8 @@ class HistorialVentas(QWidget):
                 item_total = QTableWidgetItem(total_formatted)
                 item_total.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_ventas.setItem(row, 4, item_total)
+        except Exception as e:
+            print(f"DEBUG: Error en filtrar_ventas: {e}")  # DEBUG
         finally:
             if conn:
                 conn.close()
@@ -574,3 +585,23 @@ class HistorialVentas(QWidget):
         current_window = self.window()
         if current_window:
             current_window.close()
+
+    def on_search_changed(self):
+        """Handle search filter changes"""
+        print("DEBUG: Búsqueda cambiada, aplicando filtros...")  # DEBUG
+        self.apply_current_filters()
+        
+    def on_date_changed(self):
+        """Handle date filter changes"""
+        print("DEBUG: Fecha cambiada, aplicando filtros...")  # DEBUG
+        self.apply_current_filters()
+        
+    def on_sort_changed(self):
+        """Handle sort filter changes"""
+        print("DEBUG: Ordenamiento cambiado, aplicando filtros...")  # DEBUG
+        self.apply_current_filters()
+        
+    def apply_current_filters(self):
+        """Apply all current filter settings together"""
+        print("DEBUG: Aplicando todos los filtros actuales...")  # DEBUG
+        self.filtrar_ventas(show_all_dates=False)  # Always use current date filter
